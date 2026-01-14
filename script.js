@@ -1,90 +1,63 @@
-// 1. Array to hold our inventory objects
-let inventory = [];
+let inventory = JSON.parse(localStorage.getItem('inventory')) || [];
 
-// 2. Select DOM elements
 const form = document.getElementById('inventory-form');
 const tableBody = document.querySelector('#inventory-table tbody');
 const totalItemsEl = document.getElementById('total-items');
 const totalValueEl = document.getElementById('total-value');
 const lowStockEl = document.getElementById('low-stock-count');
 
-// 3. Function to add an item
-function addItem(event) {
-    event.preventDefault(); // Prevent form from refreshing page
+function saveData() {
+    localStorage.setItem('inventory', JSON.stringify(inventory));
+}
 
-    // Get values from inputs
+function addItem(event) {
+    event.preventDefault();
     const name = document.getElementById('product-name').value;
     const quantity = parseInt(document.getElementById('product-qty').value);
     const price = parseFloat(document.getElementById('product-price').value);
 
-    // Key Concept: Object Creation
-    const product = {
-        id: Date.now(), // Unique ID based on timestamp
-        name: name,
-        quantity: quantity,
-        price: price
-    };
-
-    // Add object to array
-    inventory.push(product);
-
-    // Refresh the UI
-    renderInventory();
-    updateStats();
-    
-    // Clear form
-    form.reset();
+    if (name && quantity && price) {
+        const product = { id: Date.now(), name, quantity, price };
+        inventory.push(product);
+        saveData();
+        renderInventory();
+        updateStats();
+        form.reset();
+    }
 }
 
-// 4. Function to delete an item
 function deleteItem(id) {
-    // Filter out the item with the matching ID
     inventory = inventory.filter(product => product.id !== id);
+    saveData();
     renderInventory();
     updateStats();
 }
 
-// 5. Function to render the table (Loop)
 function renderInventory() {
-    tableBody.innerHTML = ''; // Clear current table
-
+    tableBody.innerHTML = '';
     inventory.forEach(product => {
         const row = document.createElement('tr');
-        
-        // Highlight row if low stock
-        if (product.quantity < 5) {
-            row.classList.add('low-stock-row');
-        }
-
+        if (product.quantity < 5) row.classList.add('low-stock-row');
         row.innerHTML = `
             <td>${product.name}</td>
             <td>${product.quantity}</td>
             <td>$${product.price.toFixed(2)}</td>
-            <td>
-                <button class="delete-btn" onclick="deleteItem(${product.id})">Remove</button>
-            </td>
+            <td><button class="delete-btn" onclick="deleteItem(${product.id})">Remove</button></td>
         `;
-
         tableBody.appendChild(row);
     });
 }
 
-// 6. Function to calculate totals
 function updateStats() {
-    // Calculate Total Items
-    const totalItems = inventory.reduce((sum, product) => sum + product.quantity, 0);
+    const totalItems = inventory.reduce((sum, p) => sum + p.quantity, 0);
+    const totalValue = inventory.reduce((sum, p) => sum + (p.price * p.quantity), 0);
+    const lowStock = inventory.filter(p => p.quantity < 5).length;
     
-    // Calculate Inventory Value
-    const totalValue = inventory.reduce((sum, product) => sum + (product.price * product.quantity), 0);
-    
-    // Calculate Low Stock Alerts (Items with quantity < 5)
-    const lowStockCount = inventory.filter(product => product.quantity < 5).length;
-
-    // Update HTML
     totalItemsEl.innerText = totalItems;
     totalValueEl.innerText = `$${totalValue.toFixed(2)}`;
-    lowStockEl.innerText = lowStockCount;
+    lowStockEl.innerText = lowStock;
 }
 
-// Event Listener
+renderInventory();
+updateStats();
 form.addEventListener('submit', addItem);
